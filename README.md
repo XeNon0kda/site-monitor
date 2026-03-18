@@ -3,7 +3,7 @@
 Real-time мониторинг доступности веб-сайтов с веб-интерфейсом.
 
 ## Технологии
-- Go 1.21+
+- Go 1.25.1
 - Gorilla Mux, Gorilla WebSocket
 - In-memory хранилище
 - Docker / docker-compose
