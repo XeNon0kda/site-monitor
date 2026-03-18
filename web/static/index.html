@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Site Availability Monitor</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #sites { list-style: none; padding: 0; }
+        .site { margin: 10px 0; padding: 10px; border: 1px solid #ccc; display: flex; justify-content: space-between; }
+        .up { background-color: #d4edda; }
+        .down { background-color: #f8d7da; }
+        .status { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Website Availability Monitor</h1>
+    <form id="addForm">
+        <input type="url" id="url" placeholder="https://example.com" required>
+        <button type="submit">Add Site</button>
+    </form>
+    <ul id="sites"></ul>
+
+    <script>
+        const ws = new WebSocket(`ws://${window.location.host}/ws`);
+        const sitesList = document.getElementById('sites');
+        const addForm = document.getElementById('addForm');
+        const urlInput = document.getElementById('url');
+        const siteItems = new Map();
+
+        ws.onmessage = (event) => {
+            const status = JSON.parse(event.data);
+            updateSiteStatus(status);
+        };
+
+        function updateSiteStatus(status) {
+            const item = siteItems.get(status.site_id);
+            if (item) {
+                const statusSpan = item.querySelector('.status');
+                statusSpan.textContent = status.is_up ? 'Up' : 'Down';
+                item.className = `site ${status.is_up ? 'up' : 'down'}`;
+            }
+        }
+
+        async function loadSites() {
+            const resp = await fetch('/api/sites');
+            const sites = await resp.json();
+            sitesList.innerHTML = '';
+            siteItems.clear();
+            sites.forEach(({site, status}) => addSiteToList(site, status));
+        }
+
+        function addSiteToList(site, status) {
+            const li = document.createElement('li');
+            li.id = `site-${site.id}`;
+            li.className = `site ${status?.is_up ? 'up' : 'down'}`;
+            li.innerHTML = `
+                <span>${site.url}</span>
+                <span class="status">${status ? (status.is_up ? 'Up' : 'Down') : 'Unknown'}</span>
+                <button onclick="removeSite('${site.id}')">Remove</button>
+            `;
+            sitesList.appendChild(li);
+            siteItems.set(site.id, li);
+        }
+
+        window.removeSite = async (id) => {
+            await fetch(`/api/sites/${id}`, { method: 'DELETE' });
+            siteItems.get(id)?.remove();
+            siteItems.delete(id);
+        };
+
+        addForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const url = urlInput.value;
+            const resp = await fetch('/api/sites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+            if (resp.ok) {
+                const site = await resp.json();
+                addSiteToList(site, null);
+                urlInput.value = '';
+            } else {
+                alert('Failed to add site');
+            }
+        });
+
+        loadSites();
+    </script>
+</body>
+</html>

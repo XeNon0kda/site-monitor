@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  monitor:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - CHECK_INTERVAL_SEC=30
+      - HTTP_TIMEOUT_SEC=5
+    restart: unless-stopped
