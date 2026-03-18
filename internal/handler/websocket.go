@@ -22,7 +22,6 @@ func (h *Handler) wsHandler(w http.ResponseWriter, r *http.Request) {
 	statusCh := h.monitor.Subscribe()
 	defer h.monitor.Unsubscribe(statusCh)
 
-	// горутина для чтения (чтобы не блокировать)
 	go func() {
 		for {
 			if _, _, err := conn.NextReader(); err != nil {
